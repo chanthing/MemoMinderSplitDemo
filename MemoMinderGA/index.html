@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Memo Minder</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css" integrity="sha384-cg6SkqEOCV1NbJoCu11+bm0NvBRc8IYLRGXkmNrqUBfTjmMYwNKPWBTIKyw9mHNJ" crossorigin="anonymous">
+    <script src="splitapikey.js"></script>
+    <script src="main.js"></script>
+    <script src="//cdn.split.io/sdk/split-10.15.9.min.js"></script> 
+    <script src="https://cdn.split.io/rum-agent/rum-agent-0.2.1.min.js"></script>
+    <!-- Google Analytics -->
+    <script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', GA_Key, 'auto');
+    </script>
+    <script async src='https://www.google-analytics.com/analytics.js'></script>
+    <!-- End Google Analytics -->
+    <script>
+    <!-- Initialize Split SDK when GA is ready -->
+    ga((tracker) => {
+        var anonymousId = tracker.get('clientId');
+	console.log("anonymousId: " + anonymousId);
+	var factory = splitio({
+		      core: {
+			    authorizationKey: splitAPIKey,
+			    key: anonymousId,
+			    trafficType: 'anonymous'
+  		      },
+		      scheduler: {
+			    impressionsRefreshRate: 1,
+			    eventsPushRate: 1
+		      },
+		      integrations: [{
+			type: 'GOOGLE_ANALYTICS_TO_SPLIT',
+                        mapper: (model, defaultMapping) => {
+			  var client = factory && factory.client();
+                          console.log('In mapper, event type is ' + defaultMapping.eventTypeId);
+                          console.log('In mapper, properties are ' + JSON.stringify(defaultMapping.properties));
+                          if (defaultMapping.eventTypeId.includes('ecommerce_event')) {
+                                products = defaultMapping.properties.eventCategory.products;
+                                products.map((product) => {
+				    console.log('product_name ' + product.name);
+                                    client.track('ga.product_viewed', null, {'name': product.name});
+                                });
+                          }
+                          // Do any necessary modifications to defaultMapping before returning
+			  defaultMapping.properties.eventCategory = 'Memos'; // Didn't work if I left this as a complex value
+                          return defaultMapping;
+                        },
+		      }],
+		    debug: false,
+		    });
+	    var split_client = factory.client();
+
+	    split_client.on(split_client.Event.SDK_READY, () => {
+
+		    var treatment = split_client.getTreatment('memominder_add_btn_text');
+		    console.log("treatment: " + treatment)
+                        document.getElementById("add-memo").innerHTML = treatment;
+                        document.getElementById("add-memo").style.visibility = "";
+		    });
+
+	    window.SPLIT_RUM.init(splitAPIKey)
+                        .identities([{key: anonymousId, trafficType: 'anonymous'}]);
+	});
+	ga('require', 'splitTracker');
+        ga('send', 'pageview'); 
+    </script>
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-3-24"></div>
+      <div class="pure-u-18-24">
+      <h1>Memo Minder</h1>
+        <form class="pure-form pure-form-stacked" id="memo-input-form">
+	  <fieldset>
+		<legend><b>Add Reminder</b></legend>
+		<label for="memo-subject">Subject</label>
+                <input type="text" id="memo-subject" size="80" placeholder="Enter the memo subject ...">
+		<label for="memo-priority">Priority</label>
+                <select id="memo-priority">
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+		<button type="submit" style="visibility:hidden" id="add-memo" class="pure-button pure-button-primary">Add</button>
+	  </fieldset>
+	<hr>
+        </form>
+        <div id="memosList">
+		<table class="pure-table pure-table-horizontal">
+                        <thead><tr><th>Subject</th><th>Priority</th><th>Status</th><th></th><th></th></tr></thead>
+		<p></p>
+		</table>
+        </div>
+     </div>
+    </div>
+  </body>
+</html>

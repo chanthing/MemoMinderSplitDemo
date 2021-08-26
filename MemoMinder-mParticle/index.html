@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Memo Minder</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css" integrity="sha384-cg6SkqEOCV1NbJoCu11+bm0NvBRc8IYLRGXkmNrqUBfTjmMYwNKPWBTIKyw9mHNJ" crossorigin="anonymous">
+    <script src="splitapikey.js"></script>
+    <script src="main.js"></script>
+    <script src="//cdn.split.io/sdk/split-browser-0.1.0.full.min.js"></script>
+    <script src="https://cdn.split.io/rum-agent/rum-agent-0.2.1.min.js"></script>
+    <!-- Get anonymous ID -->
+    <script>
+	var anonymousId = getCookie('splitAnonymousId');
+	if (!anonymousId) {
+	    anonymousId = create_UUID();
+	    setCookie('splitAnonymousId', anonymousId, 365);
+	}
+    </script>
+    <!-- Load mParticle Analytics -->
+    <script>
+      window.mParticle = {
+        config: {
+          isDevelopmentMode: true, //switch to false (or remove) for production
+	  identifyRequest: {
+		userIdentities: {
+			other: anonymousId
+		}
+	    }
+        },
+        identityCallback: function(result) {
+		if (result.getUser()) {
+		    console.log("getUser() = " + result.getUser());
+	  	} else {
+		    console.log("Error in identity callback");
+		}
+	}
+      };
+
+      (
+        function(t){window.mParticle=window.mParticle||{};window.mParticle.EventType={Unknown:0,Navigation:1,Location:2,Search:3,Transaction:4,UserContent:5,UserPreference:6,Social:7,Other:8};window.mParticle.eCommerce={Cart:{}};window.mParticle.Identity={};window.mParticle.config=window.mParticle.config||{};window.mParticle.config.rq=[];window.mParticle.config.snippetVersion=2.2;window.mParticle.ready=function(t){window.mParticle.config.rq.push(t)};var e=["endSession","logError","logBaseEvent","logEvent","logForm","logLink","logPageView","setSessionAttribute","setAppName","setAppVersion","setOptOut","setPosition","startNewSession","startTrackingLocation","stopTrackingLocation"];var o=["setCurrencyCode","logCheckout"];var i=["identify","login","logout","modify"];e.forEach(function(t){window.mParticle[t]=n(t)});o.forEach(function(t){window.mParticle.eCommerce[t]=n(t,"eCommerce")});i.forEach(function(t){window.mParticle.Identity[t]=n(t,"Identity")});function n(e,o){return function(){if(o){e=o+"."+e}var t=Array.prototype.slice.call(arguments);t.unshift(e);window.mParticle.config.rq.push(t)}}var mp=document.createElement("script");mp.type="text/javascript";mp.async=true;mp.src=("https:"==document.location.protocol?"https://jssdkcdns":"http://jssdkcdn")+".mparticle.com/js/v2/"+t+"/mparticle.js";var c=document.getElementsByTagName("script")[0];c.parentNode.insertBefore(mp,c)}
+      )("us1-c4ea1d85ff5ed34bb0f99bcc0e097522");
+      )(mParticleAPIKey);
+    </script>
+    <!-- Initialize Split SDK -->
+    <script>
+	var factory = splitio({
+		  core: {
+			authorizationKey: splitAPIKey,
+			key: anonymousId, // unique identifier for your anonymous
+			trafficType: 'anonymous'
+		  },
+                  scheduler: {
+                        eventsPushRate: 1,
+                        impressionsRefreshRate: 1
+                  }
+		});
+	var split_client = factory.client();
+
+	split_client.on(split_client.Event.SDK_READY, function() {
+		var treatment = split_client.getTreatment('memominder_add_btn_text');
+		console.log("treatment: " + treatment)
+		document.getElementById("add-memo").innerHTML = treatment;
+		document.getElementById("add-memo").style.visibility = "";
+		});
+
+	window.SPLIT_RUM.init(splitAPIKey)
+		.identities([{key: anonymousId, trafficType: 'anonymous'}]);
+    </script>
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-3-24"></div>
+      <div class="pure-u-18-24">
+      <h1>Memo Minder</h1>
+        <form class="pure-form pure-form-stacked" id="memo-input-form">
+	  <fieldset>
+		<legend><b>Add Reminder</b></legend>
+		<label for="memo-subject">Subject</label>
+                <input type="text" id="memo-subject" size="80" placeholder="Enter the memo subject ...">
+		<label for="memo-priority">Priority</label>
+                <select id="memo-priority">
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+		<button type="submit" style="visibility:hidden" id="add-memo" class="pure-button pure-button-primary">Add</button>
+	  </fieldset>
+	<hr>
+        </form>
+        <div id="memosList">
+		<table class="pure-table pure-table-horizontal">
+                        <thead><tr><th>Subject</th><th>Priority</th><th>Status</th><th></th><th></th></tr></thead>
+		<p></p>
+		</table>
+        </div>
+     </div>
+    </div>
+  </body>
+</html>
